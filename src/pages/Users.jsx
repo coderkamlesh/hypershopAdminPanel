@@ -34,6 +34,8 @@ import useUserStore, {
   selectSetError,
 } from '@/store/userStore';
 import AddUserDialog from '@/components/admin/AddUserDialog';
+import { Pagination } from '@/components/ui/pagination';
+import { usePagination } from '@/hooks/usePagination';
 
 const ROLES = [
   'ALL',
@@ -61,8 +63,15 @@ export default function Users() {
   const [endDate, setEndDate] = useState('');
 
   // Pagination
-  const [currentPage, setCurrentPage] = useState(1);
+  const {
+    currentPage,
+    totalPages,
+    paginatedData: currentUsers,
+    goToPage,
+    resetPage,
+  } = usePagination(users, ITEMS_PER_PAGE);
 
+  // Fetch users
   // Fetch users
   const fetchUsers = async () => {
     try {
@@ -84,9 +93,11 @@ export default function Users() {
       if (response.status === 1) {
         setUsers(response.data);
       } else {
+        setUsers([]);
         setError(response.message || 'Failed to fetch users');
       }
     } catch (error) {
+      setUsers([]);
       setError(error.message || 'Something went wrong');
     } finally {
       setLoading(false);
@@ -97,9 +108,8 @@ export default function Users() {
     fetchUsers();
   }, []);
 
-  // Handle filter changes
   const handleApplyFilters = () => {
-    setCurrentPage(1);
+    resetPage(); // Reset to page 1
     fetchUsers();
   };
 
@@ -107,14 +117,9 @@ export default function Users() {
     setSelectedRole('ALL');
     setStartDate('');
     setEndDate('');
-    setCurrentPage(1);
+    resetPage();
+    fetchUsers();
   };
-
-  // Pagination logic
-  const totalPages = Math.ceil(users.length / ITEMS_PER_PAGE);
-  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-  const endIndex = startIndex + ITEMS_PER_PAGE;
-  const currentUsers = users.slice(startIndex, endIndex);
 
   const getRoleBadgeVariant = role => {
     switch (role) {
@@ -224,7 +229,8 @@ export default function Users() {
         <CardHeader>
           <CardTitle>All Users ({users.length})</CardTitle>
           <CardDescription>
-            Showing {startIndex + 1}-{Math.min(endIndex, users.length)} of{' '}
+            Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1}-
+            {Math.min(currentPage * ITEMS_PER_PAGE, users.length)} of{' '}
             {users.length} users
           </CardDescription>
         </CardHeader>
@@ -282,35 +288,13 @@ export default function Users() {
               </div>
 
               {/* Pagination */}
-              {totalPages > 1 && (
-                <div className="flex items-center justify-between mt-4">
-                  <div className="text-sm text-muted-foreground">
-                    Page {currentPage} of {totalPages}
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() =>
-                        setCurrentPage(prev => Math.max(1, prev - 1))
-                      }
-                      disabled={currentPage === 1}
-                    >
-                      Previous
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() =>
-                        setCurrentPage(prev => Math.min(totalPages, prev + 1))
-                      }
-                      disabled={currentPage === totalPages}
-                    >
-                      Next
-                    </Button>
-                  </div>
-                </div>
-              )}
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalItems={users.length}
+                itemsPerPage={ITEMS_PER_PAGE}
+                onPageChange={goToPage}
+              />
             </>
           )}
         </CardContent>
