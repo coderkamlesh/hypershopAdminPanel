@@ -20,13 +20,21 @@ import { categoryGroupService } from '@/service/categoryGroupService';
 import { toast } from 'sonner';
 import { Trash2 } from 'lucide-react';
 import GroupDialog from '@/components/catalog/GroupDialog';
+import { Pagination } from '@/components/ui/pagination';
+import { usePagination } from '@/hooks/usePagination';
 
 const ITEMS_PER_PAGE = 10;
 
 export default function Groups() {
   const [groups, setGroups] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
+
+  const {
+    currentPage,
+    totalPages,
+    paginatedData: currentItems,
+    goToPage,
+  } = usePagination(groups, ITEMS_PER_PAGE);
 
   const fetchGroups = async () => {
     try {
@@ -64,12 +72,6 @@ export default function Groups() {
     }
   };
 
-  // Pagination
-  const totalPages = Math.ceil(groups.length / ITEMS_PER_PAGE) || 1;
-  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-  const endIndex = startIndex + ITEMS_PER_PAGE;
-  const currentItems = groups.slice(startIndex, endIndex);
-
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
@@ -88,8 +90,10 @@ export default function Groups() {
         <CardHeader>
           <CardTitle>Groups ({groups.length})</CardTitle>
           <CardDescription>
-            Showing {groups.length === 0 ? 0 : startIndex + 1}-
-            {Math.min(endIndex, groups.length)} of {groups.length} groups
+            Showing{' '}
+            {groups.length === 0 ? 0 : (currentPage - 1) * ITEMS_PER_PAGE + 1}-
+            {Math.min(currentPage * ITEMS_PER_PAGE, groups.length)} of{' '}
+            {groups.length} groups
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -158,36 +162,14 @@ export default function Groups() {
                 </Table>
               </div>
 
-              {/* Pagination */}
-              {totalPages > 1 && (
-                <div className="flex items-center justify-between mt-4">
-                  <div className="text-sm text-muted-foreground">
-                    Page {currentPage} of {totalPages}
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() =>
-                        setCurrentPage(prev => Math.max(1, prev - 1))
-                      }
-                      disabled={currentPage === 1}
-                    >
-                      Previous
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() =>
-                        setCurrentPage(prev => Math.min(totalPages, prev + 1))
-                      }
-                      disabled={currentPage === totalPages}
-                    >
-                      Next
-                    </Button>
-                  </div>
-                </div>
-              )}
+              {/* ✅ Reusable Pagination Component */}
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalItems={groups.length}
+                itemsPerPage={ITEMS_PER_PAGE}
+                onPageChange={goToPage}
+              />
             </>
           )}
         </CardContent>
